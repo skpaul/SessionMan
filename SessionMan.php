@@ -50,7 +50,6 @@
             $_SESSION['LAST_ACTIVITY'] = time(); 
         }
 
-
         /**
          * set()
          * 
@@ -64,12 +63,16 @@
          */
         public function set($identifier, $value){
 
-            if (session_status() == PHP_SESSION_NONE) {
+            if(!$this->isActive()){
                 throw new SessionManException("Session is not initialized.");
             }
 
-            $_SESSION[$identifier] = $value;
+            if($this->isExpired()){
+                throw new SessionManException("Session expired.");
+            }
+        
             $_SESSION['LAST_ACTIVITY'] = time(); // update last activity time stamp
+            $_SESSION[$identifier] = $value;
         }
 
         /**
@@ -85,12 +88,16 @@
          */
         public function get($identifier){
 
-            if (session_status() == PHP_SESSION_NONE) {
+            if(!$this->isActive()){
                 throw new SessionManException("Session is not initialized.");
             }
 
+            if($this->isExpired()){
+                throw new SessionManException("Session expired.");
+            }
+
             if(!isset($_SESSION[$identifier])) { 
-                throw new SessionManException("Specified variable not found in current session.");
+                throw new SessionManException("$identifier not found in current session.");
             } 
 
             //update last activity time stamp
@@ -101,28 +108,25 @@
         }
 
         /**
-         * exist()
+         * has()
          * 
-         * Checks whether a variable exist or not in the current session.
+         * Checks whether current session has this value.
          * 
          * @param string $identifier The name of the session variable.
          * 
          * @return boolean
          */
-        public function exist($identifier){
+        public function has($identifier){
 
-            if (session_status() == PHP_SESSION_NONE) {
-                throw new SessionManException("Session is not initialized.");
-            }
+            if(isset($_SESSION[$identifier])) { 
+                //update last activity time stamp
+                $_SESSION['LAST_ACTIVITY'] = time(); 
 
-            //update last activity time stamp
-            $_SESSION['LAST_ACTIVITY'] = time(); 
-
-            if(!isset($_SESSION[$identifier])) { 
-                return false;
+                return true;
                 // header('Location:' . $this->session_expired_url, true, 303);
             } 
-            return true;
+
+            return false;
         }
        
         /**
@@ -135,28 +139,11 @@
         public function isActive(){
             /*PHP_SESSION_ACTIVE*/ /*PHP_SESSION_NONE*/
             if (session_status() == PHP_SESSION_ACTIVE) {
-                if(isset($_SESSION['LAST_ACTIVITY'])) {
-                    if((time() - $_SESSION['LAST_ACTIVITY']) > $this->defaultSessionTimeoutValue) { 
-                        // $diff = time() - $_SESSION['LAST_ACTIVITY'] ;
-                        session_unset();     // unset $_SESSION variable for the run-time 
-                        session_destroy();   // destroy session data in storage
-                        return false;
-                    }
-                    else{
-                        $_SESSION['LAST_ACTIVITY'] = time(); // update last activity time stamp
-                        return true;
-                    }
-                }
-                else{
-                    //'LAST_ACTIVITY' variable not found.
-                    return false;
-                }  
+               return true;
             }
             else{
                 return false;
             }
-
-           
         }
 
         /**
@@ -167,28 +154,22 @@
          * @return bool Returns 'true' if expired, otherwise 'false'
          */
         public function isExpired(){
-            /*PHP_SESSION_ACTIVE*/ /*PHP_SESSION_NONE*/
-            if (session_status() == PHP_SESSION_ACTIVE) {
-                if(isset($_SESSION['LAST_ACTIVITY'])) {
-                    if((time() - $_SESSION['LAST_ACTIVITY']) > $this->defaultSessionTimeoutValue) { 
-                        // $diff = time() - $_SESSION['LAST_ACTIVITY'] ;
-                        session_unset();     // unset $_SESSION variable for the run-time 
-                        session_destroy();   // destroy session data in storage
-                        return true;
-                    }
-                    else{
-                        $_SESSION['LAST_ACTIVITY'] = time(); // update last activity time stamp
-                        return false;
-                    }
+            if(isset($_SESSION['LAST_ACTIVITY'])) {
+                if((time() - $_SESSION['LAST_ACTIVITY']) > $this->defaultSessionTimeoutValue) { 
+                    // $diff = time() - $_SESSION['LAST_ACTIVITY'] ;
+                    session_unset();     // unset $_SESSION variable for the run-time 
+                    session_destroy();   // destroy session data in storage
+                    return true;
                 }
                 else{
-                    //'LAST_ACTIVITY' variable not found.
-                    return true;
-                }  
+                    $_SESSION['LAST_ACTIVITY'] = time(); // update last activity time stamp
+                    return false;
+                }
             }
             else{
+                //'LAST_ACTIVITY' variable not found.
                 return true;
-            }
+            }  
         }
 
         /**
