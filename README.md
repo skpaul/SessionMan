@@ -44,6 +44,13 @@ $session = new SessionMan(1800);
 $session->start();
 ```
 
+please note that, you don't need to start session manually-
+
+```php
+<?php
+   session_start(); //this line is not needed.
+```
+
 
 
 ###### Set a value into session
